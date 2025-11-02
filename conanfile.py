@@ -10,13 +10,13 @@ class OtfftConan(ConanFile):
     author = "Takuya OKAHISA"
     url = "https://github.com/DEWETRON/OTFFT"
     description = "A high-speed FFT library using Stockham's algorithm and AVX/SSE"
-    topics = ("fft", "performance", "avx", "sse", "simd", "header-only")
+    topics = ("fft", "performance", "avx", "sse", "simd")
 
     # Binary configuration
     settings = "os", "compiler", "build_type", "arch"
     options = {"with_openmp": [True, False]}
     default_options = {"with_openmp": False}
-    generators = "cmake"
+    generators = "cmake_find_package", "cmake_paths"
     no_copy_source = True
     
     def export_sources(self):

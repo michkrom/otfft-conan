@@ -2,7 +2,7 @@ from conans import ConanFile, CMake
 
 class OTFFTBenchmarkConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    generators = "cmake"
+    generators = "cmake_find_package", "cmake_paths"
     
     def configure(self):
         # FFTW SIMD optimizations

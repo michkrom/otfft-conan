@@ -1,14 +1,12 @@
 cmake_minimum_required(VERSION 3.1)
 project(otfft_benchmark)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
+# Use Conan's cmake_find_package generator
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
 
 # Create executable
 add_executable(perf_comparison perf_comparison.cpp)
-
-# Link OTFFT (always required)
-target_link_libraries(perf_comparison ${CONAN_LIBS})
 
 # Set C++ standard
 set_property(TARGET perf_comparison PROPERTY CXX_STANDARD 11)
@@ -20,46 +18,59 @@ set(HAVE_KISSFFT FALSE)
 set(HAVE_PFFFT FALSE)
 set(HAVE_POCKETFFT FALSE)
 
-# Check if FFTW3 is in CONAN_LIBS
-if(CONAN_LIBS MATCHES "fftw")
+# Find and link OTFFT (always required)
+find_package(otfft REQUIRED)
+target_link_libraries(perf_comparison otfft::otfft)
+
+# Find and link FFTW3
+find_package(fftw)
+if(fftw_FOUND)
     set(HAVE_FFTW3 TRUE)
+    target_link_libraries(perf_comparison fftw::fftw)
     target_compile_definitions(perf_comparison PRIVATE HAVE_FFTW3)
     message(STATUS "FFTW3: Enabled (via Conan)")
 else()
     message(STATUS "FFTW3: Not available - add fftw/3.3.10 to conanfile.txt")
 endif()
 
-# Check if KissFFT is in CONAN_LIBS
-if(CONAN_LIBS MATCHES "kissfft")
+# Find and link KissFFT
+find_package(kissfft)
+if(kissfft_FOUND)
     set(HAVE_KISSFFT TRUE)
+    target_link_libraries(perf_comparison kissfft::kissfft)
     target_compile_definitions(perf_comparison PRIVATE HAVE_KISSFFT)
     message(STATUS "KissFFT: Enabled (via Conan)")
 else()
     message(STATUS "KissFFT: Not available")
 endif()
 
-# Check if PFFFT is in CONAN_LIBS
-if(CONAN_LIBS MATCHES "pffft")
+# Find and link PFFFT
+find_package(pffft)
+if(pffft_FOUND)
     set(HAVE_PFFFT TRUE)
+    target_link_libraries(perf_comparison pffft::pffft)
     target_compile_definitions(perf_comparison PRIVATE HAVE_PFFFT)
     message(STATUS "PFFFT: Enabled (via Conan)")
 else()
     message(STATUS "PFFFT: Not available")
 endif()
 
-# Check if PocketFFT is available (header-only library)
-find_path(POCKETFFT_INCLUDE pocketfft_hdronly.h PATHS ${CONAN_INCLUDE_DIRS} NO_DEFAULT_PATH)
-if(POCKETFFT_INCLUDE)
+# Find and link PocketFFT (header-only library)
+find_package(pocketfft)
+if(pocketfft_FOUND)
     set(HAVE_POCKETFFT TRUE)
+    target_link_libraries(perf_comparison pocketfft::pocketfft)
     target_compile_definitions(perf_comparison PRIVATE HAVE_POCKETFFT)
     message(STATUS "PocketFFT: Enabled (via Conan)")
 else()
     message(STATUS "PocketFFT: Not available")
 endif()
 
-# Check if MKL is in CONAN_LIBS
-if(CONAN_LIBS MATCHES "mkl")
+# Find and link Intel MKL
+find_package(intel-oneapi-mkl)
+if(intel-oneapi-mkl_FOUND)
     set(HAVE_MKL TRUE)
+    target_link_libraries(perf_comparison intel-oneapi-mkl::intel-oneapi-mkl)
     target_compile_definitions(perf_comparison PRIVATE HAVE_MKL)
     message(STATUS "Intel MKL: Enabled (via Conan)")
 else()
