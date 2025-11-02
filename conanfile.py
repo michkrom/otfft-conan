@@ -42,13 +42,13 @@ class OtfftConan(ConanFile):
                 self.output.warn("Could not download OTFFT sources. Please place OTFFT source manually.")
 
     def build(self):
-        # Patch CMakeLists.txt to make OpenMP optional
-        tools.replace_in_file(
-            os.path.join(self.source_folder, "CMakeLists.txt"),
-            "find_package(OpenMP REQUIRED)",
-            "find_package(OpenMP)" if self.options.with_openmp else "# find_package(OpenMP) - disabled by conan"
-        )
-        
+        # Only patch CMakeLists.txt to disable OpenMP if with_openmp is False
+        if not self.options.with_openmp:
+            tools.replace_in_file(
+                os.path.join(self.source_folder, "CMakeLists.txt"),
+                "find_package(OpenMP REQUIRED)",
+                "# find_package(OpenMP) - disabled by conan"
+            )
         cmake = CMake(self)
         # OTFFT has options for different SIMD levels
         cmake.definitions["OTFFT_BUILD_ONLY_HEADERS"] = "ON"
