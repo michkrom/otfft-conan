@@ -8,6 +8,10 @@
 #include <memory>
 #include <map>
 #include <functional>
+#include <fstream>
+#include <sstream>
+#include <sys/utsname.h>
+#include <stdexcept>
 
 // OTFFT headers (now optional)
 #ifdef HAVE_OTFFT
@@ -515,6 +519,45 @@ public:
 };
 #endif
 
+// Function to get the system architecture using the uname() system call
+std::string get_architecture() {
+    struct utsname buffer;
+    if (uname(&buffer) != 0) {
+        throw std::runtime_error("Failed to call uname()");
+    }
+    return buffer.machine;
+}
+
+// Function to get the CPU model name by reading /proc/cpuinfo
+std::string get_cpu_model() {
+    std::ifstream cpuinfo("/proc/cpuinfo");
+    std::string line;
+
+    if (!cpuinfo.is_open()) {
+        throw std::runtime_error("Could not open /proc/cpuinfo");
+    }
+
+    // Loop through the file line by line
+    while (std::getline(cpuinfo, line)) {
+        // Look for the line that specifies the human-readable model name
+        if (line.rfind("model name", 0) == 0) {
+            // Find the colon and take the rest of the string as the model name
+            size_t colon_pos = line.find(':');
+            if (colon_pos != std::string::npos) {
+                // Trim leading whitespace and return the model name (only needs to be read once)
+                std::string model = line.substr(colon_pos + 1);
+                // Trim leading whitespace
+                size_t first_char = model.find_first_not_of(" \t");
+                if (first_char != std::string::npos) {
+                    return model.substr(first_char);
+                }
+            }
+        }
+    }
+
+    return "Model name not found in /proc/cpuinfo";
+}
+
 // Benchmark result holder
 struct BenchmarkResult {
     string library;
@@ -596,6 +639,7 @@ private:
 #else
         cout << "Unknown";
 #endif
+        cout << " CPU: " << get_architecture() << " " << get_cpu_model();
         cout << endl;
         
         cout << "Comparing:";
@@ -707,8 +751,7 @@ public:
     void print_footer() const {
         int width = calculate_table_width();
         cout << "\n" << string(width, '=') << endl;
-        cout << "Benchmark completed!" << endl;
-        cout << "Note: Ratio shows speedup relative to OTFFT (higher is better for OTFFT)" << endl;
+        cout << "Note: Ratio shows speedup relative to FFTW3" << endl;
         cout << string(width, '=') << endl;
     }
 };
