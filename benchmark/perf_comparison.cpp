@@ -540,7 +540,7 @@ std::string get_cpu_model() {
     // Loop through the file line by line
     while (std::getline(cpuinfo, line)) {
         // Look for the line that specifies the human-readable model name
-        if (line.rfind("model name", 0) == 0) {
+        if (line.rfind("model name", 0) == 0 || line.rfind("Model", 0) == 0) {
             // Find the colon and take the rest of the string as the model name
             size_t colon_pos = line.find(':');
             if (colon_pos != std::string::npos) {
