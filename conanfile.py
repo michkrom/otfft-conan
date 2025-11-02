@@ -43,12 +43,25 @@ class OtfftConan(ConanFile):
 
     def build(self):
         # Only patch CMakeLists.txt to disable OpenMP if with_openmp is False
-        if not self.options.with_openmp:
-            tools.replace_in_file(
-                os.path.join(self.source_folder, "CMakeLists.txt"),
-                "find_package(OpenMP REQUIRED)",
-                "# find_package(OpenMP) - disabled by conan"
-            )
+        try:
+            if not self.options.with_openmp:
+                tools.replace_in_file(
+                    os.path.join(self.source_folder, "CMakeLists.txt"),
+                    "find_package(OpenMP REQUIRED)",
+                    "# find_package(OpenMP) - disabled by conan",
+                    strict=False
+                )
+            else:
+                tools.replace_in_file(
+                    os.path.join(self.source_folder, "CMakeLists.txt"),
+                    "find_package(OpenMP)",
+                    "find_package(OpenMP REQUIRED)",
+                    strict=False
+                )
+        except:
+            # Pattern not found or already patched, continue anyway
+            self.output.info("OpenMP patching skipped (pattern not found)")
+        
         cmake = CMake(self)
         # OTFFT has options for different SIMD levels
         cmake.definitions["OTFFT_BUILD_ONLY_HEADERS"] = "ON"
