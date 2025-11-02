@@ -8,36 +8,14 @@ This benchmark compares the performance of OTFFT against other popular FFT libra
 
 ### Prerequisites
 
-1. OTFFT package must be installed:
-   ```bash
-   cd ..
-   conan export . otfft/11.5@
-   ```
-
-2. (Optional) Install FFTW3:
-   ```bash
-   # Ubuntu/Debian
-   sudo apt-get install libfftw3-dev
-   
-   # macOS
-   brew install fftw
-   ```
-
-3. (Optional) Install Intel MKL:
-   ```bash
-   # Ubuntu/Debian
-   sudo apt-get install intel-mkl
-   
-   # Or download from Intel's website
-   ```
+There is no intel-mkl conan so to include it in benchmark it should be installed in the OS.
 
 ### Build Instructions
 
 ```bash
 mkdir build && cd build
-conan install .. --install-folder=.
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build .
+conan install ..
+conan build ..
 ```
 
 ## Running
@@ -52,9 +30,9 @@ The benchmark runs the following tests:
 - **Complex FFT**: Forward FFT on complex data
 - **Real FFT**: Forward FFT on real-valued data
 
-Test sizes: 128, 256, 512, 1024, 2048, 4096, 8192
+Test sizes: 128, 256, 512, 1024, 2048, 4096, 8192, 16384
 
-Each test is run 1000 times and the average time is reported in microseconds (μs).
+Each test is run for at least 1 second and averaged.
 
 ## Output
 
@@ -68,4 +46,4 @@ The benchmark will show:
 - The benchmark will automatically detect which libraries are available
 - If FFTW3 or MKL are not found, only available libraries will be compared
 - All tests use the same input data for fair comparison
-- Times are averaged over 1000 iterations for accuracy
+- Performance is averaged over 1s run time for each case
