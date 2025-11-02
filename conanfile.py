@@ -14,6 +14,8 @@ class OtfftConan(ConanFile):
 
     # Binary configuration
     settings = "os", "compiler", "build_type", "arch"
+    options = {"with_openmp": [True, False]}
+    default_options = {"with_openmp": False}
     generators = "cmake"
     no_copy_source = True
     
@@ -32,19 +34,21 @@ class OtfftConan(ConanFile):
     def source(self):
         # If sources are not exported, try to get them from GitHub
         if not os.path.exists(os.path.join(self.source_folder, "CMakeLists.txt")):
-            # Try different possible URLs for OTFFT
             try:
-                tools.get("https://github.com/DEWETRON/OTFFT/archive/refs/heads/master.zip", 
-                         destination=self.source_folder, strip_root=True)
+                tools.get("https://github.com/DEWETRON/otfft/archive/refs/heads/master.zip", 
+                            destination=self.source_folder, strip_root=True)
             except:
-                try:
-                    tools.get("https://github.com/DEWETRON/otfft/archive/refs/heads/master.zip", 
-                             destination=self.source_folder, strip_root=True)
-                except:
-                    # If download fails, warn
-                    self.output.warn("Could not download OTFFT sources. Please place OTFFT source manually.")
+                # If download fails, warn
+                self.output.warn("Could not download OTFFT sources. Please place OTFFT source manually.")
 
     def build(self):
+        # Patch CMakeLists.txt to make OpenMP optional
+        tools.replace_in_file(
+            os.path.join(self.source_folder, "CMakeLists.txt"),
+            "find_package(OpenMP REQUIRED)",
+            "find_package(OpenMP)" if self.options.with_openmp else "# find_package(OpenMP) - disabled by conan"
+        )
+        
         cmake = CMake(self)
         # OTFFT has options for different SIMD levels
         cmake.definitions["OTFFT_BUILD_ONLY_HEADERS"] = "ON"
@@ -79,14 +83,22 @@ class OtfftConan(ConanFile):
         # Link the OTFFT library
         self.cpp_info.libs = ["otfft"]
         
-        # Add compiler flags for optimal performance
-        if self.settings.compiler == "gcc" or self.settings.compiler == "clang":
-            self.cpp_info.cppflags.append("-mavx")
-            self.cpp_info.cppflags.append("-msse2")
-            self.cpp_info.cppflags.append("-fopenmp")
-        elif self.settings.compiler == "Visual Studio":
-            self.cpp_info.cppflags.append("/arch:AVX")
-            self.cpp_info.cppflags.append("/openmp")
+        # Add architecture-specific compiler flags
+        if self.settings.arch in ["x86_64", "x86"]:
+            if self.settings.compiler == "gcc" or self.settings.compiler == "clang":
+                self.cpp_info.cppflags.append("-mavx")
+                self.cpp_info.cppflags.append("-msse2")
+            elif self.settings.compiler == "Visual Studio":
+                self.cpp_info.cppflags.append("/arch:AVX")
+        
+        # Add OpenMP flags if enabled
+        if self.options.with_openmp:
+            if self.settings.compiler == "gcc" or self.settings.compiler == "clang":
+                self.cpp_info.cppflags.append("-fopenmp")
+                self.cpp_info.sharedlinkflags.append("-fopenmp")
+                self.cpp_info.exelinkflags.append("-fopenmp")
+            elif self.settings.compiler == "Visual Studio":
+                self.cpp_info.cppflags.append("/openmp")
 
         # Set C++ standard requirement
         if self.settings.compiler == "gcc" or self.settings.compiler == "clang":
