@@ -7,12 +7,15 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <functional>
 
-// OTFFT headers
+// OTFFT headers (now optional)
+#ifdef HAVE_OTFFT
 #include "otfft.h"
 #include "otfft_fwd.h"
+#endif
 
-// FFTW3 headers
+// FFTW3 headers (primary/standard FFT library)
 #ifdef HAVE_FFTW3
 #include <fftw3.h>
 #endif
@@ -92,6 +95,7 @@ public:
     int getActualIterations() const { return actual_iterations_; }
 };
 
+#ifdef HAVE_OTFFT
 // OTFFT Complex FFT Benchmark
 class OTFFTComplexBenchmark : public FFTBenchmark {
 private:
@@ -152,6 +156,7 @@ public:
         spectrum_.clear();
     }
 };
+#endif // HAVE_OTFFT
 
 #ifdef HAVE_FFTW3
 // FFTW3 Complex FFT Benchmark
@@ -525,38 +530,49 @@ struct BenchmarkResult {
 // Benchmark runner and table formatter
 class BenchmarkRunner {
 private:
-    vector<string> enabled_libraries_;
+    vector<unique_ptr<FFTBenchmark>> benchmarks_;
     double min_duration_seconds_;
     static const int LABEL_WIDTH = 15;
     static const int COL_SIZE_WIDTH = 5;
     static const int TIME_WIDTH = 7;
     static const int RATIO_WIDTH = 6;
     
-    void detect_enabled_libraries() {
-        enabled_libraries_.push_back("OTFFT");
+    void create_benchmarks(int size, bool is_real) {
+        benchmarks_.clear();
+        
+        // FFTW3 is the primary/baseline library
 #ifdef HAVE_FFTW3
-        enabled_libraries_.push_back("FFTW3");
+        if (is_real) benchmarks_.push_back(unique_ptr<FFTBenchmark>(new FFTW3RealBenchmark(size, min_duration_seconds_)));
+        else benchmarks_.push_back(unique_ptr<FFTBenchmark>(new FFTW3ComplexBenchmark(size, min_duration_seconds_)));
+#endif
+#ifdef HAVE_OTFFT
+        if (is_real) benchmarks_.push_back(unique_ptr<FFTBenchmark>(new OTFFTRealBenchmark(size, min_duration_seconds_)));
+        else benchmarks_.push_back(unique_ptr<FFTBenchmark>(new OTFFTComplexBenchmark(size, min_duration_seconds_)));
 #endif
 #ifdef HAVE_KISSFFT
-        enabled_libraries_.push_back("Kiss");
+        if (is_real) benchmarks_.push_back(unique_ptr<FFTBenchmark>(new KissFFTRealBenchmark(size, min_duration_seconds_)));
+        else benchmarks_.push_back(unique_ptr<FFTBenchmark>(new KissFFTComplexBenchmark(size, min_duration_seconds_)));
 #endif
 #ifdef HAVE_PFFFT
-        enabled_libraries_.push_back("PFFFT");
+        if (is_real) benchmarks_.push_back(unique_ptr<FFTBenchmark>(new PFFFFTRealBenchmark(size, min_duration_seconds_)));
+        else benchmarks_.push_back(unique_ptr<FFTBenchmark>(new PFFFFTComplexBenchmark(size, min_duration_seconds_)));
 #endif
 #ifdef HAVE_POCKETFFT
-        enabled_libraries_.push_back("Pocket");
+        if (is_real) benchmarks_.push_back(unique_ptr<FFTBenchmark>(new PocketFFTRealBenchmark(size, min_duration_seconds_)));
+        else benchmarks_.push_back(unique_ptr<FFTBenchmark>(new PocketFFTComplexBenchmark(size, min_duration_seconds_)));
 #endif
 #ifdef HAVE_MKL
-        enabled_libraries_.push_back("MKL");
+        if (is_real) benchmarks_.push_back(unique_ptr<FFTBenchmark>(new MKLRealBenchmark(size, min_duration_seconds_)));
+        else benchmarks_.push_back(unique_ptr<FFTBenchmark>(new MKLComplexBenchmark(size, min_duration_seconds_)));
 #endif
     }
     
     int calculate_table_width() const {
         int width = LABEL_WIDTH + COL_SIZE_WIDTH + 3;  // Label + Size + separators
-        width += TIME_WIDTH + 2;  // OTFFT time + separators
+        width += TIME_WIDTH + 2;  // Baseline library time + separators
         
         // Each additional library adds: time + ratio + separators
-        for (size_t i = 1; i < enabled_libraries_.size(); ++i) {
+        for (size_t i = 1; i < benchmarks_.size(); ++i) {
             width += TIME_WIDTH + RATIO_WIDTH + 4;
         }
         
@@ -583,9 +599,9 @@ private:
         cout << endl;
         
         cout << "Comparing:";
-        for (const auto& lib : enabled_libraries_) {
-            cout << " " << lib;
-            if (&lib != &enabled_libraries_.back()) cout << " |";
+        for (const auto& bench : benchmarks_) {
+            cout << " " << bench->getName();
+            if (bench != benchmarks_.back()) cout << " |";
         }
         cout << endl;
         cout << "Min test duration: " << min_duration_seconds_ << " second(s)" << endl;
@@ -597,12 +613,12 @@ private:
         cout << left << setw(LABEL_WIDTH) << "Test Type";
         cout << right << setw(COL_SIZE_WIDTH) << "Size" << " |";
         
-        // OTFFT (baseline)
-        cout << right << setw(TIME_WIDTH) << enabled_libraries_[0] << " |";
+        // First library (baseline - typically FFTW3)
+        cout << right << setw(TIME_WIDTH) << benchmarks_[0]->getName() << " |";
         
         // Other libraries with ratio column
-        for (size_t i = 1; i < enabled_libraries_.size(); ++i) {
-            cout << right << setw(TIME_WIDTH) << enabled_libraries_[i] << " |";
+        for (size_t i = 1; i < benchmarks_.size(); ++i) {
+            cout << right << setw(TIME_WIDTH) << benchmarks_[i]->getName() << " |";
             cout << right << setw(RATIO_WIDTH) << "Ratio" << " |";
         }
         cout << endl;
@@ -614,7 +630,7 @@ private:
         cout << left << setw(LABEL_WIDTH) << label;
         cout << right << setw(COL_SIZE_WIDTH) << size << " |";
         
-        // OTFFT (baseline) time
+        // First library (baseline) time
         cout << fixed << setprecision(2) << setw(TIME_WIDTH) << results[0].time_us << " |";
         
         // Other libraries with ratio
@@ -626,47 +642,33 @@ private:
     }
     
 public:
-    BenchmarkRunner(double min_duration_seconds = 1.0) : min_duration_seconds_(min_duration_seconds) {
-        detect_enabled_libraries();
-    }
+    BenchmarkRunner(double min_duration_seconds = 1.0) : min_duration_seconds_(min_duration_seconds) {}
     
     void run_complex_benchmarks(const vector<int>& sizes) {
+        // Create benchmarks once for banner and header
+        create_benchmarks(sizes[0], false);
         print_banner();
         cout << "\n========== COMPLEX FFT TESTS ==========" << endl;
         print_table_header();
         
         for (int size : sizes) {
+            // Create benchmarks for this size
+            create_benchmarks(size, false);
+            
             vector<BenchmarkResult> results;
+            double baseline_time = 0.0;
             
-            // OTFFT (baseline)
-            OTFFTComplexBenchmark otfft(size, min_duration_seconds_);
-            double baseline_time = otfft.run();
-            results.emplace_back("OTFFT", baseline_time, baseline_time);
-            
-#ifdef HAVE_FFTW3
-            FFTW3ComplexBenchmark fftw(size, min_duration_seconds_);
-            results.emplace_back("FFTW3", fftw.run(), baseline_time);
-#endif
-
-#ifdef HAVE_KISSFFT
-            KissFFTComplexBenchmark kiss(size, min_duration_seconds_);
-            results.emplace_back("Kiss", kiss.run(), baseline_time);
-#endif
-
-#ifdef HAVE_PFFFT
-            PFFFFTComplexBenchmark pffft(size, min_duration_seconds_);
-            results.emplace_back("PFFFT", pffft.run(), baseline_time);
-#endif
-
-#ifdef HAVE_POCKETFFT
-            PocketFFTComplexBenchmark pocket(size, min_duration_seconds_);
-            results.emplace_back("Pocket", pocket.run(), baseline_time);
-#endif
-
-#ifdef HAVE_MKL
-            MKLComplexBenchmark mkl(size, min_duration_seconds_);
-            results.emplace_back("MKL", mkl.run(), baseline_time);
-#endif
+            // Run benchmarks for each enabled library
+            for (size_t i = 0; i < benchmarks_.size(); ++i) {
+                double time = benchmarks_[i]->run();
+                
+                // First library is the baseline
+                if (i == 0) {
+                    baseline_time = time;
+                }
+                
+                results.emplace_back(benchmarks_[i]->getName(), time, baseline_time);
+            }
             
             print_results_row("Complex FFT", size, results);
         }
@@ -674,40 +676,29 @@ public:
     
     void run_real_benchmarks(const vector<int>& sizes) {
         cout << "\n========== REAL FFT TESTS ==========" << endl;
+        
+        // Create benchmarks once for header
+        create_benchmarks(sizes[0], true);
         print_table_header();
         
         for (int size : sizes) {
+            // Create benchmarks for this size
+            create_benchmarks(size, true);
+            
             vector<BenchmarkResult> results;
+            double baseline_time = 0.0;
             
-            // OTFFT (baseline)
-            OTFFTRealBenchmark otfft(size, min_duration_seconds_);
-            double baseline_time = otfft.run();
-            results.emplace_back("OTFFT", baseline_time, baseline_time);
-            
-#ifdef HAVE_FFTW3
-            FFTW3RealBenchmark fftw(size, min_duration_seconds_);
-            results.emplace_back("FFTW3", fftw.run(), baseline_time);
-#endif
-
-#ifdef HAVE_KISSFFT
-            KissFFTRealBenchmark kiss(size, min_duration_seconds_);
-            results.emplace_back("Kiss", kiss.run(), baseline_time);
-#endif
-
-#ifdef HAVE_PFFFT
-            PFFFFTRealBenchmark pffft(size, min_duration_seconds_);
-            results.emplace_back("PFFFT", pffft.run(), baseline_time);
-#endif
-
-#ifdef HAVE_POCKETFFT
-            PocketFFTRealBenchmark pocket(size, min_duration_seconds_);
-            results.emplace_back("Pocket", pocket.run(), baseline_time);
-#endif
-
-#ifdef HAVE_MKL
-            MKLRealBenchmark mkl(size, min_duration_seconds_);
-            results.emplace_back("MKL", mkl.run(), baseline_time);
-#endif
+            // Run benchmarks for each enabled library
+            for (size_t i = 0; i < benchmarks_.size(); ++i) {
+                double time = benchmarks_[i]->run();
+                
+                // First library is the baseline
+                if (i == 0) {
+                    baseline_time = time;
+                }
+                
+                results.emplace_back(benchmarks_[i]->getName(), time, baseline_time);
+            }
             
             print_results_row("Real FFT", size, results);
         }

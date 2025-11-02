@@ -20,10 +20,14 @@ class OTFFTBenchmarkConan(ConanFile):
                 pass  # Use default
     
     def requirements(self):
-        # Always required FFT libraries
-        self.requires("otfft/11.5@")
-        # FFTW with SIMD optimizations enabled
+        # FFTW as the primary/standard FFT library - always required
         self.requires("fftw/3.3.10")
+        
+        # OTFFT - required on x86_64, will be dynamically detected by CMake
+        if self.settings.arch == "x86_64":
+            self.requires("otfft/11.5@")
+        
+        # Other FFT libraries for comparison
         self.requires("kissfft/131.1.0")
         self.requires("pffft/cci.20210511")
         self.requires("pocketfft/0.0.0.cci.20240801")
