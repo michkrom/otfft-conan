@@ -6,18 +6,28 @@ class OTFFTBenchmarkConan(ConanFile):
     
     def configure(self):
         # FFTW SIMD optimizations
-        # Disable long double precision to enable AVX2 SIMD
+        # Disable long double precision to enable SIMD optimizations
         self.options["fftw"].precision_longdouble = False
         self.options["fftw"].precision_double = True
         self.options["fftw"].precision_single = True
-        # Enable SIMD - try avx2, fallback options if not available: avx, sse2
-        try:
-            self.options["fftw"].simd = "avx2"
-        except:
+        
+        # Enable SIMD based on architecture
+        if self.settings.arch in ["x86", "x86_64"]:
+            # Enable SIMD for x86 - try avx2, fallback options if not available: avx, sse2
             try:
-                self.options["fftw"].simd = "avx"
+                self.options["fftw"].simd = "avx2"
             except:
-                pass  # Use default
+                try:
+                    self.options["fftw"].simd = "avx"
+                except:
+                    try:
+                        self.options["fftw"].simd = "sse2"
+                    except:
+                        pass  # Use default
+        else:
+            # For ARM and other architectures, disable explicit SIMD setting
+            # FFTW will auto-detect NEON on ARM
+            self.options["fftw"].simd = False
     
     def requirements(self):
         # FFTW as the primary/standard FFT library - always required

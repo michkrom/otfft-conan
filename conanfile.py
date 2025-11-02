@@ -96,14 +96,6 @@ class OtfftConan(ConanFile):
         # Link the OTFFT library
         self.cpp_info.libs = ["otfft"]
         
-        # Add architecture-specific compiler flags
-        if self.settings.arch in ["x86_64", "x86"]:
-            if self.settings.compiler == "gcc" or self.settings.compiler == "clang":
-                self.cpp_info.cppflags.append("-mavx")
-                self.cpp_info.cppflags.append("-msse2")
-            elif self.settings.compiler == "Visual Studio":
-                self.cpp_info.cppflags.append("/arch:AVX")
-        
         # Add OpenMP flags if enabled
         if self.options.with_openmp:
             if self.settings.compiler == "gcc" or self.settings.compiler == "clang":
