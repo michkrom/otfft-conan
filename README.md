@@ -90,9 +90,8 @@ The `benchmark/` directory contains a comprehensive performance comparison tool 
 ```bash
 cd benchmark
 mkdir build && cd build
-conan install ..
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build .
+conan install .. -s build_type=Release --build=missing
+conan build ..
 ./bin/perf_comparison
 ```
 
