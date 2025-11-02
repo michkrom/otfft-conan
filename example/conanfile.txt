@@ -2,8 +2,7 @@
 otfft/11.5@
 
 [generators]
-CMakeDeps
-CMakeToolchain
+cmake
 
 [options]
 

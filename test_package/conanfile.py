@@ -1,23 +1,23 @@
-from conan import ConanFile
-from conan.tools.cmake import CMake, cmake_layout
-from conan.tools.build import can_run
+from conans import ConanFile, CMake, tools
 import os
 
 
 class OtfftTestConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeDeps", "CMakeToolchain"
-
-    def layout(self):
-        cmake_layout(self)
+    generators = "cmake"
 
     def build(self):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
 
+    def imports(self):
+        self.copy("*.dll", dst="bin", keep_path=False)
+        self.copy("*.dylib*", dst="bin", keep_path=False)
+        self.copy('*.so*', dst='bin', keep_path=False)
+
     def test(self):
-        if can_run(self):
+        if not tools.cross_building(self):
             # For header-only library, we just need to check if compilation works
             self.output.info("OTFFT headers should be available for inclusion")
             bin_path = os.path.join("bin", "test")

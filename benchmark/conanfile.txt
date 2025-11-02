@@ -6,8 +6,7 @@ pffft/cci.20210511
 pocketfft/0.0.0.cci.20240801
 
 [generators]
-CMakeDeps
-CMakeToolchain
+cmake
 
 [options]
 
