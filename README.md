@@ -180,7 +180,7 @@ Note: Ratio shows speedup relative to FFTW3
 ===================================================================================
 ```
 
-**Note:** Ratio values show performance relative to OTFFT. Values < 1.0x indicate the compared library is faster than OTFFT for that particular size.
+**Note:** Ratio values show performance relative to FFTW3. Values < 1.0x indicate the compared library is faster than FFW3 for that particular size.
 
 ### Key Observations
 - In general, the FFTW3 performance shines, only to be matched by MKL on x86
