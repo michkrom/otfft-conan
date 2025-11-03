@@ -101,7 +101,7 @@ conan build ..
 
 ### Sample Benchmark Results
 
-The following results were obtained on a test system with GCC 13, testing FFT sizes from 128 to 8192 points with 10,000 iterations per test:
+The following results were obtained on a test system with GCC 13, testing FFT sizes from 128 to 16384 points for 1s each:
 
 ```
 =====================================================================================================================
@@ -110,8 +110,8 @@ The following results were obtained on a test system with GCC 13, testing FFT si
 Compiler: GCC 13.3.0 CPU: x86_64 Intel(R) Core(TM) Ultra 7 165H
 Comparing: FFTW3 | OTFFT | Kiss | PFFFT | Pocket | MKL
 Min test duration: 1 second(s)
-Times shown in microseconds (μs)=====================================================================================================================
-
+Times shown in microseconds (μs)
+=====================================================================================================================
 Min test duration: 1 second(s)
 Times shown in microseconds (μs)
 =====================================================================================================================
