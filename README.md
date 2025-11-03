@@ -11,7 +11,7 @@ https://github.com/DEWETRON/otfft
 
 ### Installing from source
 
-1. got clone or otherwise this repo
+1. `git clone` or otherwise download this repo
 
 2. Create the package from the root of this package:
 ```bash
