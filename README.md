@@ -183,9 +183,8 @@ Note: Ratio shows speedup relative to FFTW3
 **Note:** Ratio values show performance relative to OTFFT. Values < 1.0x indicate the compared library is faster than OTFFT for that particular size.
 
 ### Key Observations
-- For smaller N, the FFTW3 performance shines, only to be matched by MKL on x86
-- For bigger N, the performance of all algorithms starts to converge. Probable due to general floating point performance starting to overshadow everything else.
-- The exception is PFFFT which is single-precision floating point, really good (relatively) on arm64 (probably due to a wimpy hw fp unit that sux for 'double' fp).
+- In general, the FFTW3 performance shines, only to be matched by MKL on x86
+- The exception is PFFFT on arm64 which is really good (relatively), probably due to a wimpy hw fp unit that sux for 'double' fp as PFFFT is single-precision 32-bit fp (`float` vs `double`)
 
 ## Notes
 
