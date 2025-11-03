@@ -1,21 +1,23 @@
 # OTFFT Conan Package
 
-This is a Conan package for OTFFT (A high-speed FFT library using Stockham's algorithm and AVX/SSE).
+This is a Conan package for OTFFT (A high-speed FFT library using Stockham's algorithm and AVX/SSE). The actual code for OTFFT is downloaded by conan during installation.
 
 ## About OTFFT
 
 OTFFT is a C++ library that provides high-performance Fast Fourier Transform implementations optimized for modern CPU architectures with AVX and SSE support.
+https://github.com/DEWETRON/otfft
 
 ## Usage
 
 ### Installing from source
 
-1. Place the OTFFT source files in this directory, or the conanfile will attempt to download them automatically.
+1. got clone or otherwise this repo
 
-2. Create the package:
+2. Create the package from the root of this package:
 ```bash
 conan create . --build=missing
 ```
+This will export the package to your local conan cache and build it and build and run the the test package.
 
 ### Using in your project
 
@@ -44,10 +46,10 @@ target_link_libraries(your_target otfft::otfft)
 
 ## Package Information
 
-- **Type**: Header-only library
-- **License**: MIT
-- **Homepage**: https://github.com/DEWETRON/OTFFT
-- **Compiler Requirements**: C++11 compatible compiler with AVX/SSE support
+- **Type**: H library
+- **License**: MIT for the OTFFT and CC BY for this conan wrapper
+- **Homepage**: https://github.com/DEWETRON/OTFFT and https://github.com/michkrom/otfft-conan
+- **Compiler Requirements**: C++11 compatible compiler with AVX/SSE support (x86-64)
 
 ## Build Requirements
 
@@ -75,7 +77,7 @@ The example demonstrates:
 
 ## Performance Benchmark
 
-The `benchmark/` directory contains a comprehensive performance comparison tool that benchmarks OTFFT against other popular FFT libraries:
+The `benchmark/` directory contains a comprehensive performance comparison tool that benchmarks FFTW3 against other popular FFT libraries:
 
 ### Included Libraries
 - **OTFFT** (baseline) - High-performance FFT with AVX/SSE optimizations
@@ -84,6 +86,8 @@ The `benchmark/` directory contains a comprehensive performance comparison tool 
 - **PFFFT** - "Pretty Fast FFT" optimized for small sizes
 - **PocketFFT** - Header-only C++ FFT library
 - **Intel MKL** - Intel's Math Kernel Library (optional, system installation)
+
+The OTFFT is x86 specific but the benchmark itself would build on other architectures. 
 
 ### Building and Running the Benchmark
 
