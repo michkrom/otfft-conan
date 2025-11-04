@@ -70,23 +70,32 @@ else()
     message(STATUS "PocketFFT: Not available")
 endif()
 
-# Find and link Intel MKL
-find_package(intel-oneapi-mkl)
-if(intel-oneapi-mkl_FOUND)
-    set(HAVE_MKL TRUE)
-    target_link_libraries(perf_comparison intel-oneapi-mkl::intel-oneapi-mkl)
-    target_compile_definitions(perf_comparison PRIVATE HAVE_MKL)
-    message(STATUS "Intel MKL: Enabled (via Conan)")
+# Find and link Intel MKL (only for x86_64 architectures)
+# Check if we're building for a compatible architecture
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(AMD64)|(^i.86$)")
+    set(MKL_ARCH_COMPATIBLE TRUE)
 else()
-    # Try to find system-installed Intel MKL
-    set(MKL_SEARCH_PATHS
-        $ENV{MKLROOT}
-        /opt/intel/oneapi/mkl/latest
-        /opt/intel/mkl
-        /usr/local/intel/mkl
-        /usr
-        $ENV{HOME}/intel/oneapi/mkl/latest
-    )
+    set(MKL_ARCH_COMPATIBLE FALSE)
+    message(STATUS "Intel MKL: Skipped (incompatible architecture: ${CMAKE_SYSTEM_PROCESSOR})")
+endif()
+
+if(MKL_ARCH_COMPATIBLE)
+    find_package(intel-oneapi-mkl)
+    if(intel-oneapi-mkl_FOUND)
+        set(HAVE_MKL TRUE)
+        target_link_libraries(perf_comparison intel-oneapi-mkl::intel-oneapi-mkl)
+        target_compile_definitions(perf_comparison PRIVATE HAVE_MKL)
+        message(STATUS "Intel MKL: Enabled (via Conan)")
+    else()
+        # Try to find system-installed Intel MKL
+        set(MKL_SEARCH_PATHS
+            $ENV{MKLROOT}
+            /opt/intel/oneapi/mkl/latest
+            /opt/intel/mkl
+            /usr/local/intel/mkl
+            /usr
+            $ENV{HOME}/intel/oneapi/mkl/latest
+        )
     
     find_path(MKL_INCLUDE_DIR 
         NAMES mkl.h
@@ -112,23 +121,24 @@ else()
         PATH_SUFFIXES lib lib/intel64 lib/x86_64-linux-gnu
     )
     
-    if(MKL_INCLUDE_DIR AND MKL_CORE_LIBRARY AND MKL_INTEL_LP64_LIBRARY AND MKL_SEQUENTIAL_LIBRARY)
-        set(HAVE_MKL TRUE)
-        target_compile_definitions(perf_comparison PRIVATE HAVE_MKL)
-        target_include_directories(perf_comparison PRIVATE ${MKL_INCLUDE_DIR})
-        target_link_libraries(perf_comparison 
-            ${MKL_INTEL_LP64_LIBRARY}
-            ${MKL_SEQUENTIAL_LIBRARY}
-            ${MKL_CORE_LIBRARY}
-            pthread
-            m
-            dl
-        )
-        message(STATUS "Intel MKL: Enabled (system installation)")
-        message(STATUS "  Include: ${MKL_INCLUDE_DIR}")
-        message(STATUS "  Library: ${MKL_CORE_LIBRARY}")
-    else()
-        message(STATUS "Intel MKL: Not found")
+        if(MKL_INCLUDE_DIR AND MKL_CORE_LIBRARY AND MKL_INTEL_LP64_LIBRARY AND MKL_SEQUENTIAL_LIBRARY)
+            set(HAVE_MKL TRUE)
+            target_compile_definitions(perf_comparison PRIVATE HAVE_MKL)
+            target_include_directories(perf_comparison PRIVATE ${MKL_INCLUDE_DIR})
+            target_link_libraries(perf_comparison 
+                ${MKL_INTEL_LP64_LIBRARY}
+                ${MKL_SEQUENTIAL_LIBRARY}
+                ${MKL_CORE_LIBRARY}
+                pthread
+                m
+                dl
+            )
+            message(STATUS "Intel MKL: Enabled (system installation)")
+            message(STATUS "  Include: ${MKL_INCLUDE_DIR}")
+            message(STATUS "  Library: ${MKL_CORE_LIBRARY}")
+        else()
+            message(STATUS "Intel MKL: Not found")
+        endif()
     endif()
 endif()
 
