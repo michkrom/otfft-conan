@@ -2,6 +2,8 @@ from conans import ConanFile, CMake
 
 class OTFFTBenchmarkConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
+    options = {"with_mkl": [True, False]}
+    default_options = {"with_mkl": True}
     generators = "cmake_find_package", "cmake_paths"
     
     def configure(self):
@@ -45,10 +47,13 @@ class OTFFTBenchmarkConan(ConanFile):
         # Intel MKL via Conan is x86_64 only
         # Note: This is for Conan packages. System MKL detection in CMake
         # will still work on x86_64 if MKL is installed locally
-        # if self.settings.arch == "x86_64":
+        # if self.settings.arch == "x86_64" and self.options.with_mkl:
         #     self.requires("intel-oneapi-mkl/2023.2.0")  # Not available in Conan Center
     
     def build(self):
         cmake = CMake(self)
+        # Pass option to disable MKL detection in CMake
+        if not self.options.with_mkl:
+            cmake.definitions["DISABLE_MKL"] = "ON"
         cmake.configure()
         cmake.build()

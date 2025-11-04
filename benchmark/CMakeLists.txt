@@ -72,7 +72,11 @@ endif()
 
 # Find and link Intel MKL (only for x86_64 architectures)
 # Check if we're building for a compatible architecture
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(AMD64)|(^i.86$)")
+# Check if MKL should be disabled
+if(DISABLE_MKL)
+    message(STATUS "Intel MKL: Disabled by user option")
+    set(MKL_ARCH_COMPATIBLE FALSE)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(AMD64)|(^i.86$)")
     set(MKL_ARCH_COMPATIBLE TRUE)
 else()
     set(MKL_ARCH_COMPATIBLE FALSE)
